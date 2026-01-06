@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  scribd-dl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: scribd-dl-web
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./output:/app/output
+      - ./config.ini:/app/config.ini
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+    # Security options for Puppeteer
+    security_opt:
+      - seccomp:unconfined
+    shm_size: '2gb'
+

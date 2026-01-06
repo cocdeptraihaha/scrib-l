@@ -100,33 +100,66 @@ class ScribdDownloader {
 
             // keep only the outer_page_container content
             await page.evaluate(() => { // eslint-disable-next-line
-                document.body.innerHTML = document.querySelector("div.outer_page_container").innerHTML
+                const container = document.querySelector("div.outer_page_container");
+                document.body.innerHTML = container.innerHTML;
+                // Remove any spacing/margin from body
+                document.body.style.margin = '0';
+                document.body.style.padding = '0';
             })
             
             // hide all pages initially
             for (let i = 0; i < pageSelectors.length; i++) {
                 await page.evaluate((i) => {
-                    document.getElementById(`outer_page_${(i + 1)}`).style.display = 'none'
+                    const pageEl = document.getElementById(`outer_page_${(i + 1)}`);
+                    if (pageEl) {
+                        pageEl.style.display = 'none';
+                        pageEl.style.margin = '0';
+                        pageEl.style.padding = '0';
+                    }
                 }, i)
             }
 
             // prepare pdf options
             let options = {
                 printBackground: true,
-                timeout: 0
+                timeout: 0,
+                preferCSSPageSize: true,
+                pageRanges: '1' // Only generate first page to avoid blank pages
             }
 
             // generate per-page pdfs
             console.log(`Generate per-page PDFs...`)
             progressBar.start(pageSelectors.length, 0);
             for (let i = 0; i < pageSelectors.length; i++) {
-                // show current page
-                await page.evaluate((i) => {
-                    document.getElementById(`outer_page_${(i + 1)}`).style.display = 'block'
-                }, i)
+                // Hide all pages first, then show only current page
+                await page.evaluate((i, total) => {
+                    // Hide all pages
+                    for (let j = 1; j <= total; j++) {
+                        const pageEl = document.getElementById(`outer_page_${j}`);
+                        if (pageEl) {
+                            pageEl.style.display = 'none';
+                        }
+                    }
+                    // Show only current page
+                    const currentPage = document.getElementById(`outer_page_${(i + 1)}`);
+                    if (currentPage) {
+                        currentPage.style.display = 'block';
+                        currentPage.style.margin = '0';
+                        currentPage.style.padding = '0';
+                    }
+                }, i, pageSelectors.length)
+
+                // Wait for page to render after showing
+                await new Promise(resolve => setTimeout(resolve, rendertime))
 
                 // get page size and set options
                 let pageSelector = await page.$(`#outer_page_${(i + 1)}`);
+                if (!pageSelector) {
+                    console.warn(`Page ${i + 1} not found, skipping...`);
+                    progressBar.update(i + 1);
+                    continue;
+                }
+                
                 let style = await pageSelector.evaluate((el) => el.getAttribute("style"))
                 options.path = `${output}/${identifier}/${("00" + i).slice(-3)}.pdf`
                 options.height = parseInt(style.split("height:")[1].split("px")[0].trim())
@@ -134,15 +167,18 @@ class ScribdDownloader {
                     options.height += 1
                 }
                 options.width = parseInt(style.split("width:")[1].split("px")[0].trim())
+                
+                // Set margin to 0 to avoid blank pages
+                options.margin = {
+                    top: '0px',
+                    right: '0px',
+                    bottom: '0px',
+                    left: '0px'
+                }
 
-                // generate pdf
+                // generate pdf - ensure only one page is generated
                 await directoryIo.create(path.dirname(options.path))
                 await page.pdf(options);
-
-                // hide current page
-                await page.evaluate((i) => {
-                    document.getElementById(`outer_page_${(i + 1)}`).style.display = 'none'
-                }, i)
 
                 progressBar.update(i + 1);
             }
@@ -152,19 +188,30 @@ class ScribdDownloader {
             // merge per-page pdfs
             console.log(`Merging PDFs...`)
             const outputPdf = await PDFDocument.create();
+            const progressBarMerge = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+            progressBarMerge.start(pageSelectors.length, 0);
+            
             for (let i = 0; i < pageSelectors.length; i++) {
                 let tmpPdfPath = `${output}/${identifier}/${("00" + i).slice(-3)}.pdf`
                 try {
                     const pdfBytes = await fs.readFile(tmpPdfPath);
                     const sourcePdf = await PDFDocument.load(pdfBytes);
-                    const copiedPages = await outputPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
-                    copiedPages.forEach(page => {
-                        outputPdf.addPage(page);
-                    });
+                    const pageIndices = sourcePdf.getPageIndices();
+                    
+                    // Only copy pages that have content (skip blank pages)
+                    // For each PDF, only take the first page if it exists
+                    if (pageIndices.length > 0) {
+                        const copiedPages = await outputPdf.copyPages(sourcePdf, [0]);
+                        copiedPages.forEach(page => {
+                            outputPdf.addPage(page);
+                        });
+                    }
                 } catch (error) {
                     console.error(`Failed to merge PDF at ${tmpPdfPath}:`, error.message);
                 }
+                progressBarMerge.update(i + 1);
             }
+            progressBarMerge.stop();
             const outputPdfBytes = await outputPdf.save();
             let outputPdfPath = `${output}/${identifier}.pdf`
             await fs.writeFile(outputPdfPath, outputPdfBytes);

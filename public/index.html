@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scribd Downloader - Web Interface</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 Scribd Downloader</h1>
+            <p class="subtitle">Tải xuống tài liệu từ Scribd, Slideshare và Everand</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <form id="downloadForm">
+                    <div class="form-group">
+                        <label for="url">URL tài liệu:</label>
+                        <input 
+                            type="url" 
+                            id="url" 
+                            name="url" 
+                            placeholder="https://www.scribd.com/doc/..." 
+                            required
+                        >
+                        <small class="help-text">
+                            Hỗ trợ: scribd.com, slideshare.net, everand.com
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="imageMode" name="imageMode">
+                            <span>Chế độ image-based (chỉ cho Scribd)</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" id="downloadBtn" class="btn-primary">
+                        <span id="btnText">Tải xuống</span>
+                        <span id="btnLoader" class="loader hidden"></span>
+                    </button>
+                </form>
+
+                <div id="status" class="status hidden"></div>
+                
+                <!-- Progress Bar -->
+                <div id="progressContainer" class="progress-container hidden">
+                    <div class="progress-info">
+                        <span id="progressMessage">Đang xử lý...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-bar-wrapper">
+                        <div id="progressBar" class="progress-bar"></div>
+                    </div>
+                    <div id="progressStage" class="progress-stage"></div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>Hướng dẫn sử dụng</h3>
+                <ul>
+                    <li>Dán URL của tài liệu vào ô trên</li>
+                    <li>Chọn chế độ image-based nếu muốn (chỉ cho Scribd)</li>
+                    <li>Nhấn "Tải xuống" và chờ quá trình hoàn tất</li>
+                    <li>File sẽ tự động được tải về máy của bạn</li>
+                </ul>
+
+                <h3>Ví dụ URL</h3>
+                <div class="examples">
+                    <code>https://www.scribd.com/doc/249398282/...</code>
+                    <code>https://www.slideshare.net/slideshow/...</code>
+                    <code>https://www.everand.com/podcast-show/...</code>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 Scribd Downloader</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
