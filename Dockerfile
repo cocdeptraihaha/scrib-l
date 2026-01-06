@@ -46,10 +46,14 @@ EXPOSE 3000
 
 # Set environment variables
 ENV NODE_ENV=production
+ENV DOCKER=true
 
 # PORT will be set by the platform (Railway/Render)
 # Default to 3000 if not set
 ENV PORT=${PORT:-3000}
+
+# Increase shared memory size for Puppeteer
+RUN mkdir -p /dev/shm && chmod 1777 /dev/shm
 
 # Start the server
 CMD ["npm", "run", "server"]

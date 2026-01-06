@@ -9,6 +9,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DOCKER
+        value: "true"
       # PORT is automatically set by Render, no need to specify
     healthCheckPath: /api/status
     autoDeploy: true
